@@ -1,8 +1,7 @@
-library(readxl)
 library(dplyr)
 library(tidyr)
-Worldbank1_raw <- read_excel("Data/Worldbank1.xlsx")
-Worldbank2_raw <- read_excel("Data/Worldbank2.xlsx")
+Worldbank1_raw <- readxl::read_excel("Data/Worldbank1.xlsx")
+Worldbank2_raw <- readxl::read_excel("Data/Worldbank2.xlsx")
 
 Worldbank1 <- Worldbank1_raw[1:208,] %>%
   mutate(across(`2023 [YR2023]`:average, as.numeric)) %>%
@@ -20,6 +19,8 @@ Worldbank2 <- Worldbank2_raw[1:39,] %>%
   pivot_wider(names_from = "Series Name", values_from = "data")
 
 Worldbank <- Worldbank1 %>%
-  full_join(Worldbank2, by = c("Country Name" = "Country Name", "Country Code" = "Country Code", "Year" = "Year"))
+  full_join(Worldbank2, by = c("Country Name" = "Country Name", "Country Code" = "Country Code", "Year" = "Year")) %>%
+  mutate(Year = as.factor(Year))
 
-write_csv(Worldbank, "Data/Worldbank.csv")
+#write_csv(Worldbank, "Data/Worldbank.csv")
+readr::write_rds(Worldbank, "Data/Worldbank.RDS")
