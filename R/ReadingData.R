@@ -20,7 +20,7 @@ Worldbank2 <- Worldbank2_raw[1:39,] %>%
 
 Worldbank <- Worldbank1 %>%
   full_join(Worldbank2, by = c("Country Name" = "Country Name", "Country Code" = "Country Code", "Year" = "Year")) %>%
-  mutate(Year = as.factor(Year))
+  mutate(across(c(`Country Name`, `Country Code`), ~as.factor(.x))) %>%
+  mutate(Year = as.ordered(Year))
 
-#write_csv(Worldbank, "Data/Worldbank.csv")
 readr::write_rds(Worldbank, "Data/Worldbank.RDS")
