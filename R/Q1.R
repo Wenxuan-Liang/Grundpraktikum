@@ -4,10 +4,16 @@
 # per capita across different countries? Does this also depend on the country
 # size or the inhabitants?
 #########################
+library(dplyr)
+library(ggplot2)
+
 Worldbank <- readr::read_rds("Data/Worldbank.RDS")
 
 summary(Worldbank)
 str(Worldbank)
+
+Worldbank %>%
+  filter(is.na(`Access to electricity (% of population)`))
 
 Worldbank_Q1 <- Worldbank %>%
   filter(Year < 2023) %>%
@@ -44,9 +50,6 @@ Worldbank_Q1 %>%
   geom_boxplot() +
   scale_y_log10()
 
-Worldbank_Q1 %>%
-  filter(is.na(`Access to electricity (% of population)`))
-
 Plot_Electricity1 <- Worldbank_Q1 %>%
   ggplot(aes(y = `Adjusted net national income per capita (current US$)`, x = cut_interval(`Access to electricity (% of population)`, n = 4, breaks = c(0,25,50,75,100), labels = c("0 - 25%", "25 - 50%", "50 - 75%", "75 - 100%"))))+
   geom_point(aes(colour = `Country Code` == 'AFG')) +
@@ -57,14 +60,45 @@ Plot_Electricity1 <- Worldbank_Q1 %>%
   ylab("Adj. net national income p.c. (current US$)")+
   xlab("Access to electricity")+
   theme_light()
-
 ggsave("Plots/Q1-1.png", Plot_Electricity1, device = "png")
 
+Plot_Electricity_wo_AFG <- Worldbank_Q1 %>%
+  filter(`Country Code` != "AFG") %>%
+  ggplot(aes(y = `Adjusted net national income per capita (current US$)`, x = cut_interval(`Access to electricity (% of population)`, n = 4, breaks = c(0,25,50,75,100), labels = c("0 - 25%", "25 - 50%", "50 - 75%", "75 - 100%"))))+
+  geom_boxplot()+
+  scale_y_log10()+
+  ylab("Adj. net national income p.c. (current US$)")+
+  xlab("Access to electricity")+
+  theme_light()
+
+#cut_interval(Worldbank_Q1$`Access to electricity (% of population)`,n = 4, breaks = c(0,25,50,75,100), labels = c("(0,25]", "(25,50]", "(50,75]", "(75,100]"))
 
 Worldbank_Q1 %>%
-  filter(`Adjusted net national income per capita (current US$)` < 1000) %>%
-  filter(`Access to electricity (% of population)` > 76.9)
+  group_by(`Country Name`) %>%
+  summarize(tau = cor(x = `Access to electricity (% of population)`, 
+                        y = `Adjusted net national income per capita (current US$)`,
+                        method = "pearson",
+                        use = "na.or.complete"))
 
-cut(Worldbank_Q1$`Access to electricity (% of population)`, breaks = c(0,25,50,75,100))
+Worldbank_Q1 %>%
+  filter(`Country Code` == "CZE") %>%
+  ggplot(aes(y = `Adjusted net national income per capita (current US$)`, x = `Access to electricity (% of population)`))+
+  geom_point()
 
-cut_interval(Worldbank_Q1$`Access to electricity (% of population)`,n = 4, breaks = c(0,25,50,75,100), labels = c("(0,25]", "(25,50]", "(50,75]", "(75,100]"))
+low_elec <- Worldbank_Q1 %>%
+  group_by(`Country Code`) %>%
+  summarize(elec = mean(`Access to electricity (% of population)`)) %>%
+  filter(elec < 100) %>%
+  pull(`Country Code`)
+
+Worldbank_Q1 %>%
+  filter(`Country Code` %in% low_elec) %>%
+  ggplot(aes(y = `Adjusted net national income per capita (current US$)`, x = `Access to electricity (% of population)`))+
+  geom_point(aes(color = `Country Name`), size = 1.5)+
+  geom_smooth(method = "lm", se = FALSE, color = "grey")+
+  geom_smooth(aes(group = `Country Code`, color = `Country Name`), method = "lm", se = FALSE)+
+  scale_y_log10()+
+  scale_color_brewer(type = "qual")
+  ylab("Adj. net national income p.c. (current US$)")+
+  xlab("Access to electricity")+
+  theme_light()
